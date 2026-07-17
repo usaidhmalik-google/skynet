@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Skynet: Google ADK Agent Builder</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">SKYNET <span>AGENT BUILDER</span></div>
+            <div class="status">Google ADK v2.4.0</div>
+        </header>
+
+        <section class="prompt-section">
+            <h2>Describe the Agent You Want to Build</h2>
+            <p class="subtitle">Based on the Google 5-Day AI Agents Course (incorporates tools, custom functions, MCP servers, and dynamic routing)</p>
+            <div class="prompt-container">
+                <textarea id="prompt-input" placeholder="Example: A research agent that has access to google_search to look up AI news, and a custom python function to format it as a markdown summary..."></textarea>
+                <button id="build-btn" onclick="buildAgent()">Build Agent Prototype</button>
+            </div>
+        </section>
+
+        <main class="workspace">
+            <!-- Code Viewer Pane -->
+            <div class="pane code-pane">
+                <div class="pane-header">
+                    <h3>Generated Agent Code (generated_agent.py)</h3>
+                    <button class="action-btn" onclick="loadCode()">Refresh Code</button>
+                </div>
+                <div class="code-container">
+                    <pre><code id="code-display" class="language-python"># Your generated agent code will appear here...</code></pre>
+                </div>
+            </div>
+
+            <!-- Chat Pane -->
+            <div class="pane chat-pane">
+                <div class="pane-header">
+                    <h3>Interactive Agent Chat Session</h3>
+                    <button class="action-btn danger" onclick="resetChat()">Reset Session</button>
+                </div>
+                <div id="chat-messages" class="messages-container">
+                    <div class="message system">
+                        <div class="text">Generate an agent above to begin chatting. Once built, you can test its logic and tool calling live in this pane.</div>
+                    </div>
+                </div>
+                <div class="input-container">
+                    <input type="text" id="chat-input" placeholder="Type a message to your generated agent..." onkeydown="if(event.key === 'Enter') sendMessage()" disabled>
+                    <button id="send-btn" onclick="sendMessage()" disabled>Send</button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>

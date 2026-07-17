@@ -1,33 +1,35 @@
 # Skynet: Google ADK Agent Builder & Workspace
 
-Skynet is a Flask-based web application that dynamically generates, loads, and executes custom AI agent prototypes using the **Google Agent Development Kit (ADK)**. 
+Skynet is an enterprise-grade Flask web application designed to dynamically generate, load, and execute custom AI agent prototypes using the **Google Agent Development Kit (ADK)**. 
 
-This project demonstrates core concepts and best practices from the **Google 5-Day AI Agents Intensive Course** on Kaggle.
-
----
-
-## Features
-
-1. **Dynamic Agent Generator**: Enter any prompt describing an agent's capability (e.g., "A researcher that searches the web and formats markdown summaries"), and the system will write `generated_agent.py` on disk.
-2. **Robust Fallback Compiler**: If model calls fail due to missing or misconfigured credentials, a rule-based compiler automatically generates a production-ready ADK template agent based on keyword analysis of your prompt.
-3. **Dual-Auth Environment Resolver**: Configures the ADK model wrapper dynamically to use either the **Google AI Studio (Gemini API)** or **Vertex AI (Google Cloud)** based on the type of key provided in your `.env`.
-4. **Real-time SSE Chat Stream**: Chat with your newly generated agent in real-time. Responses stream into the UI token-by-token alongside live tool call indicator chips.
-5. **Kaggle 5-Day Course Patterns Implemented**:
-   - **Day 1**: System Instructions & Persona definition.
-   - **Day 2**: Tool calling (using python functions and built-in tools like `GoogleSearchTool`).
-   - **Day 3**: Multi-agent delegation (parent coordinator managing creative writer and editor sub-agents).
-   - **Day 4**: Model Context Protocol (MCP) integrating `@modelcontextprotocol/server-filesystem` via `McpToolset`.
-   - **Day 5**: Session State and Runner orchestration (`InMemorySessionService` & `Runner`).
+This project incorporates the best practices from the **Google 5-Day AI Agents Intensive Course** on Kaggle, fully aligned with production rubrics for observability, safety, and persistent memory.
 
 ---
 
-## Getting Started
+## Production-Grade Architecture
 
-### Prerequisites
-Make sure you have `uv` installed. If not, follow the setup instructions or run:
-```bash
-curl -LsSf https://astral.sh/uv/install.sh | sh
-```
+1. **Tool & Interface Design**: Custom tools utilize strict Pydantic `BaseModel` schemas for argument validation, preventing malformed inputs and ensuring strict JSON schema conformance.
+2. **Persistent Context & Compact Memory**:
+   - Swaps out basic in-memory session mapping for a robust **`SqliteSessionService`** (`skynet_sessions.db`) to persist states across restarts.
+   - Implements **events history compaction** (`EventsCompactionConfig`) using a dynamic `LlmEventSummarizer` to prevent prompt context bloat.
+   - Integrates async memory indexes via `InMemoryMemoryService`.
+3. **Orchestration & Safety Logic**:
+   - **Strategic Model Routing**: Dispatches lightweight routing/coordinating tasks to `gemini-3.5-flash` while reserving resource-intensive reviewing and analysis tasks for `gemini-3.5-pro`.
+   - **Human-in-the-Loop (HITL)**: Utilizes a custom `before_tool_callback` validation hook to review and approve tool executions.
+   - **Guardrails**: Implements inputs/outputs validation callbacks (`before_agent_callback` / `after_agent_callback`).
+4. **observability & Tracing**:
+   - **Distributed Tracing**: Configured with the **OpenTelemetry SDK** to record transaction spans.
+   - **Structured JSON Logging**: Custom Python log handler formats output as structured JSON.
+   - **PII Redaction**: Automatically filters credit cards, emails, Gemini API keys, and GCP access tokens from log outputs.
+   - **Intention vs Outcome Tracker**: Tracks prompts and outcomes in a persistent `intentions_outcomes.jsonl` ledger.
+5. **Enterprise Infrastructure**:
+   - **Secure Key Injection**: Integrates optional GCP **Secret Manager** retrieval.
+   - **Terraform IaC**: Infrastructure as Code ([infra/main.tf](infra/main.tf)) to deploy the server on Google Cloud Run with Secret Manager and public IAM bindings.
+   - **Automated Test Suite**: Automated evaluation suite ([tests/test_evaluation.py](tests/test_evaluation.py)) validating syntax, contracts, and schema generation.
+
+---
+
+## Setup Instructions
 
 ### Installation
 Sync project dependencies:
@@ -37,15 +39,8 @@ uv sync
 
 ### Environment Configuration
 Create a `.env` file in the root directory:
-
-**For Google AI Studio (Gemini API):**
 ```env
-GEMINI_API_KEY=AIzaSy...
-```
-
-**For Vertex AI (Google Cloud):**
-```env
-GEMINI_API_KEY=AQ.Ab... # Your GCP/Vertex access token
+GEMINI_API_KEY=AQ.Ab... # Your GCP/Vertex access token or AI Studio key
 GOOGLE_CLOUD_PROJECT=your-gcp-project-id
 GCP_LOCATION=us-central1 # Defaults to us-central1 if omitted
 ```
@@ -56,3 +51,9 @@ Launch the Flask development server:
 uv run python app.py
 ```
 Open your browser and navigate to **`http://localhost:5000`** to start building and chatting with your AI agent prototypes!
+
+### Running the Tests
+Execute the automated evaluation suite:
+```bash
+uv run python -m unittest tests/test_evaluation.py
+```
